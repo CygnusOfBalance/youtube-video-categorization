@@ -3,84 +3,118 @@
 #CS484
 #Professor Barbara
 import numpy as np
-import csv
-import json
+import matplotlib.pyplot as plt
+import pandas
+import seaborn as sns
+from sklearn import datasets, linear_model
+from sklearn.metrics import mean_squared_error, r2_score
 
 def main():
     #---------------------------------------------------------------------------
     # LOAD IN THE DATA
-    # We load in data from the file ./youtube_data/USVideos.csv
+    # We load in data from the file ../youtube_data/USVideos.csv
     # Data is read in from this format -->
     #   video_id,trending_date,title,channel_title,category_id,publish_time,tags,
     #   views,likes,dislikes,comment_count,thumbnail_link,comments_disabled,
     #   ratings_disabled,video_error_or_removed,description
     # (without newlines)
+    # we use the pandas package here because it's an easy one liner
     #---------------------------------------------------------------------------
 
-    ###
-    # load in column IDs first
-    # Column IDs is an array that allows us to determine what each column means
+    data = pandas.read_csv("../youtube_data/USvideos.csv")
+
+    #---------------------------------------------------------------------------
+    # LINEAR REGRESSION
+    # we will use linear regression in order to properly predict the Number
+    # of likes in the video.
     #
-    # Next (in the same for loop) load in the rest of the data into a NumPy array
-    ###
-
-    columnID = []
-    data = []
-    count = 0
-    with open("../youtube_data/USVideos.csv", 'r+') as csvfile:
-        read = csv.reader(csvfile, delimiter=',', quotechar='"')
-        for i in read:
-            if count == 0:
-                columnID = i
-                count += 1
-            else:
-                data.append(i)
-    dataNumpy = np.array(data)
-
-    #print(columnID)
-    #print(dataNumpy[0])
-
-    #---------------------------------------------------------------------------
-    # CATEGORIZE BASED ON ID
-    # the data comes with an "ID" column in which the uploaders of the video
-    # can manually categorize their videos.
-    # We can use this for either straight up categorizing our videos OR as a
-    # means of cross validation
+    # DEFINITIONS OF VARS
+    # xc = number of video views
+    # yc = number of likes (what we are trying to predict)
+    # cc = number of comments
+    # dl = number of dislikes
     #---------------------------------------------------------------------------
 
-    ###
-    # Load in JSON categories file into a dictionary
-    # dict format: {Category ID : Category String}
-    #   ID is a number representing the category id
-    #   String is just the exact category i.e. "Automobiles"
-    ###
-    f = open("../youtube_data/US_category_id.json", "r+")
-    js = json.load(f)
-    categories = {}
-
-    for i in range(len(js["items"])):
-        categories[js["items"][i]["id"]] = js["items"][i]["snippet"]["title"]
-
-    #print(categories["24"])
+    xc = np.array(data["views"])
+    yc = np.array(data["likes"])
+    cc = np.array(data["comment_count"])
+    dl = np.array(data["dislikes"])
 
     ###
-    #place videos in their proper categories
+    #NOTES ON ADDITIONS THAT DIDN'T DO ANYTHING
+    #I attempted to add the category_id as a vector but it saw no improvement
+    #---
+    #I also added comments_disabled as a vector and it didn't improve it at all \
+    #---
+    #Lastly I added title as a vector and converted the title to an integer and
+    #this also did nothing.
+    #NOTES ON ADDITIONS THAT DIDN'T DO ANYTHING
     ###
-    categorizedVideos = {}
-    count = 0
-    for i in dataNumpy:
-        x = str(i[4])
-        if x in categorizedVideos and count != 0:
-            categorizedVideos[x].append([(i[2], categories[x], count)])
-        elif count != 0:
-            categorizedVideos[x] = [(i[2], categories[x], count)]
-        count += 1
 
-    for i in categorizedVideos:
-        print(i + ":")
-        for x in categorizedVideos[i]:
-            print("\t" + str(x))
-        print()
+    ###
+    #NOTES ON ADDITIONS THAT WORKED
+    #the "cc" array or "comment_count" array originally didn't exist. I added
+    #the vector to raise the accuracy from 72% to 83%
+    #---
+    #the "dl" arr or "dislikes" array was added to bring up accuracy from 83% to
+    #88%
+    #NOTES ON ADDITIONS THAT WORKED
+    ###
+    xc = xc[:, None]
+    cc = cc[:, None]
+    dl = dl[:, None]
+
+    xc = np.append(xc, cc, axis=1)
+    xc = np.append(xc, dl, axis=1)
+
+
+    yc = yc[:, None]
+
+    xc_train = xc[:len(xc)//2]
+    xc_test = xc[len(xc)//2:]
+    yc_train = yc[:len(xc)//2]
+    yc_test = yc[len(xc)//2:]
+
+    regr = linear_model.LinearRegression()
+    regr.fit(xc_train, yc_train)
+
+    yc_pred = regr.predict(xc_test)
+
+    print('Coefficients: \n', regr.coef_)
+    # The mean squared error
+    print('Mean squared error: %.2f' % mean_squared_error(yc_test, yc_pred))
+    # The coefficient of determination: 1 is perfect prediction
+    print('Coefficient of determination: %.2f' % r2_score(yc_test, yc_pred))
+
+    #---------------------------------------------------------------------------
+    #PLOT THE DATA
+    #---------------------------------------------------------------------------
+    x1 = np.log(data["likes"])
+    y1 = np.log(data["views"])
+    y2 = np.log(data["dislikes"])
+    y3 = np.log(data["comment_count"])
+
+    #---------------------------------------------------------------------------
+    # LIKES v VIEWS
+    #---------------------------------------------------------------------------
+    sns.regplot(x=x1,y=y1,fit_reg=False)
+    plt.show()
+    plt.close()
+
+    #---------------------------------------------------------------------------
+    # LIKES v DISLIKES
+    #---------------------------------------------------------------------------
+    sns.regplot(x=x1,y=y2,fit_reg=False)
+    plt.show()
+    plt.close()
+
+    #---------------------------------------------------------------------------
+    # LIKES v COMMENTS 
+    #---------------------------------------------------------------------------
+    sns.regplot(x=x1,y=y3,fit_reg=False)
+    plt.show()
+    plt.close()
+
 
 
 
