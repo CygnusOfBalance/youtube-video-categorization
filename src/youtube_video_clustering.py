@@ -4,6 +4,7 @@
 #Professor Barbara
 import numpy as np
 import csv
+import json
 
 def main():
     #---------------------------------------------------------------------------
@@ -27,7 +28,7 @@ def main():
     data = []
     count = 0
     with open("../youtube_data/USVideos.csv", 'r+') as csvfile:
-        read = csv.reader(csvfile, delimiter=',', quotechar='|')
+        read = csv.reader(csvfile, delimiter=',', quotechar='"')
         for i in read:
             if count == 0:
                 columnID = i
@@ -36,7 +37,52 @@ def main():
                 data.append(i)
     dataNumpy = np.array(data)
 
-     
+    #print(columnID)
+    #print(dataNumpy[0])
+
+    #---------------------------------------------------------------------------
+    # CATEGORIZE BASED ON ID
+    # the data comes with an "ID" column in which the uploaders of the video
+    # can manually categorize their videos.
+    # We can use this for either straight up categorizing our videos OR as a
+    # means of cross validation
+    #---------------------------------------------------------------------------
+
+    ###
+    # Load in JSON categories file into a dictionary
+    # dict format: {Category ID : Category String}
+    #   ID is a number representing the category id
+    #   String is just the exact category i.e. "Automobiles"
+    ###
+    f = open("../youtube_data/US_category_id.json", "r+")
+    js = json.load(f)
+    categories = {}
+
+    for i in range(len(js["items"])):
+        categories[js["items"][i]["id"]] = js["items"][i]["snippet"]["title"]
+
+    #print(categories["24"])
+
+    ###
+    #place videos in their proper categories
+    ###
+    categorizedVideos = {}
+    count = 0
+    for i in dataNumpy:
+        x = str(i[4])
+        if x in categorizedVideos and count != 0:
+            categorizedVideos[x].append([(i[2], categories[x], count)])
+        elif count != 0:
+            categorizedVideos[x] = [(i[2], categories[x], count)]
+        count += 1
+
+    for i in categorizedVideos:
+        print(i + ":")
+        for x in categorizedVideos[i]:
+            print("\t" + str(x))
+        print()
+
+
 
 
 
