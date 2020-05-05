@@ -93,6 +93,7 @@ def main():
     y1 = np.log(data["views"])
     y2 = np.log(data["dislikes"])
     y3 = np.log(data["comment_count"])
+    y4 = np.log(data["category_id"])
 
     #---------------------------------------------------------------------------
     # LIKES v VIEWS
@@ -109,9 +110,16 @@ def main():
     plt.close()
 
     #---------------------------------------------------------------------------
-    # LIKES v COMMENTS 
+    # LIKES v COMMENTS
     #---------------------------------------------------------------------------
     sns.regplot(x=x1,y=y3,fit_reg=False)
+    plt.show()
+    plt.close()
+
+    #---------------------------------------------------------------------------
+    # LIKES v CATEGORY ID
+    #---------------------------------------------------------------------------
+    sns.regplot(x=x1,y=y4,fit_reg=False)
     plt.show()
     plt.close()
 
